@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-8
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-8
+  template:
+    metadata:
+      labels:
+        app: backend-8
+    spec:
+      containers:
+        - name: backend-8
+          image: sasha543/course-app:1
+          ports:
+            - containerPort: 8088
+          envFrom:
+            - configMapRef:
+                name: backend-8-config
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8088
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8088
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 2
+      maxSurge: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-8-service
+spec:
+  type: ClusterIP
+  selector:
+    app: backend-8
+  ports:
+    - port: 8088
+      targetPort: 8088
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-8-config
+data:
+  APP_STORE: redis
+  APP_REDIS_URL: redis://redis-8:6379/0
+  TEST: test
